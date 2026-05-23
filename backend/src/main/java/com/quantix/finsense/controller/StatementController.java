@@ -1,6 +1,7 @@
 package com.quantix.finsense.controller;
 
 import com.quantix.finsense.dto.UploadResponse;
+import com.quantix.finsense.service.StatementUploadService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -14,10 +15,17 @@ import org.springframework.web.multipart.MultipartFile;
 @CrossOrigin(origins = "*")
 public class StatementController {
 
+    private final StatementUploadService uploadService;
+
+    public StatementController(StatementUploadService uploadService) {
+        this.uploadService = uploadService;
+    }
+
     @PostMapping("/upload")
     public ResponseEntity<UploadResponse> upload(@RequestParam("file") MultipartFile file) {
-        // PDF parsing and ML pipeline will be wired here later.
-        return ResponseEntity.ok(
-                new UploadResponse("success", "Statement uploaded and queued for ML processing"));
+        if (file.isEmpty()) {
+            return ResponseEntity.badRequest().body(new UploadResponse("error", "Uploaded file is empty"));
+        }
+        return ResponseEntity.ok(uploadService.process(file));
     }
 }
