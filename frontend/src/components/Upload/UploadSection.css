@@ -1,17 +1,207 @@
-.upload-container {
+/* ─── Page ───────────────────────────────────────────────────────────────── */
+.upload-section {
   min-height: 100vh;
+  background: var(--bg-green);
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
-  background: #f0fdf4;
+  justify-content: center;
+  padding: 40px 16px;
+  animation: fadeIn 0.4s ease;
 }
 
-.drop-zone {
-  width: 500px;
-  padding: 40px;
-  background: white;
-  border: 2px dashed teal;
-  border-radius: 20px;
+/* ─── Logo ───────────────────────────────────────────────────────────────── */
+.upload-logo {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 44px;
+  text-align: left;
+}
+
+.upload-logo__icon {
+  width: 54px;
+  height: 54px;
+  background: var(--primary);
+  border-radius: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 26px;
+  font-weight: 900;
+  flex-shrink: 0;
+}
+
+.upload-logo__title {
+  font-size: 30px;
+  font-weight: 900;
+  color: var(--text-primary);
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.upload-logo__accent {
+  color: var(--primary);
+}
+
+.upload-logo__sub {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* ─── Drop zone ──────────────────────────────────────────────────────────── */
+.upload-zone {
+  width: 100%;
+  max-width: 520px;
+  border: 2px dashed var(--primary-ring);
+  border-radius: var(--radius-2xl);
+  padding: 52px 32px;
   text-align: center;
   cursor: pointer;
+  background: var(--surface);
+  transition: border-color 0.2s, background 0.2s, transform 0.15s;
+  margin-bottom: 16px;
+  outline: none;
+}
+
+.upload-zone:hover,
+.upload-zone:focus-visible {
+  border-color: var(--primary);
+  background: var(--bg-green);
+}
+
+.upload-zone:active {
+  transform: scale(0.995);
+}
+
+.upload-zone--active {
+  border-color: var(--primary) !important;
+  background: #dcfce7 !important;
+}
+
+.upload-zone__icon {
+  display: block;
+  font-size: 52px;
+  margin-bottom: 14px;
+}
+
+.upload-zone__title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.upload-zone__sub {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-bottom: 22px;
+}
+
+.upload-zone__badges {
+  display: inline-flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.upload-zone__input {
+  display: none;
+}
+
+/* ─── Badges ─────────────────────────────────────────────────────────────── */
+.upload-badge {
+  border-radius: var(--radius-md);
+  padding: 5px 14px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.upload-badge--primary {
+  background: var(--primary-light);
+  color: var(--primary);
+  border: 1px solid var(--primary-ring);
+}
+
+.upload-badge--neutral {
+  background: #f1f5f9;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+
+/* ─── Error ──────────────────────────────────────────────────────────────── */
+.upload-error {
+  width: 100%;
+  max-width: 520px;
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
+  border-radius: var(--radius-lg);
+  padding: 10px 16px;
+  color: var(--danger-text);
+  font-size: 13px;
+  margin-bottom: 12px;
+  animation: fadeUp 0.3s ease;
+}
+
+/* ─── Sample download button ─────────────────────────────────────────────── */
+.upload-sample-btn {
+  background: none;
+  border: 1px solid var(--border-strong);
+  color: var(--text-muted);
+  border-radius: var(--radius-md);
+  padding: 8px 20px;
+  font-size: 13px;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  margin-bottom: 48px;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.upload-sample-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+/* ─── Feature grid ───────────────────────────────────────────────────────── */
+.upload-features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+  max-width: 540px;
+  width: 100%;
+}
+
+.upload-feature-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  text-align: center;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.upload-feature-card:hover {
+  border-color: var(--primary-ring);
+  box-shadow: var(--shadow-sm);
+}
+
+.upload-feature-card__icon {
+  display: block;
+  font-size: 26px;
+  margin-bottom: 6px;
+}
+
+.upload-feature-card__title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 3px;
+}
+
+.upload-feature-card__desc {
+  font-size: 11px;
+  color: var(--text-sub);
+  line-height: 1.4;
 }

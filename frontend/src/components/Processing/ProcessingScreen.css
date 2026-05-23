@@ -1,0 +1,75 @@
+/* ─── Page ───────────────────────────────────────────────────────────────── */
+.processing-screen {
+  min-height: 100vh;
+  background: var(--bg-green);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: fadeIn 0.3s ease;
+}
+
+/* ─── Card ───────────────────────────────────────────────────────────────── */
+.processing-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-2xl);
+  padding: 48px 44px;
+  min-width: 380px;
+  max-width: 460px;
+  width: 100%;
+  text-align: center;
+  box-shadow: var(--shadow-md);
+  animation: slideDown 0.4s ease;
+}
+
+/* ─── Spinner ────────────────────────────────────────────────────────────── */
+.processing-spinner {
+  width: 56px;
+  height: 56px;
+  border: 3px solid var(--primary-light);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+  margin: 0 auto 24px;
+}
+
+/* ─── Title ──────────────────────────────────────────────────────────────── */
+.processing-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 24px;
+}
+
+/* ─── Log list ───────────────────────────────────────────────────────────── */
+.processing-log {
+  list-style: none;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.processing-log__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--text-sub);
+  animation: fadeUp 0.3s ease;
+}
+
+.processing-log__item--active {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.processing-log__icon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.processing-log__msg {
+  line-height: 1.4;
+}
