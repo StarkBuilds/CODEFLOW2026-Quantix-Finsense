@@ -7,7 +7,7 @@ import com.quantix.finsense.parser.ParsedTransaction;
 import com.quantix.finsense.repository.TransactionRepository;
 import com.quantix.finsense.repository.UserRepository;
 import java.io.IOException;
-import java.java.ArrayList;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
