@@ -2,9 +2,7 @@ package com.quantix.finsense.controller;
 
 import com.quantix.finsense.dto.DashboardSummaryDTO;
 import com.quantix.finsense.dto.TransactionDTO;
-import com.quantix.finsense.model.TransactionType;
-import java.math.BigDecimal;
-import java.time.LocalDate;
+import com.quantix.finsense.service.DashboardService;
 import java.util.List;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,42 +14,19 @@ import org.springframework.web.bind.annotation.RestController;
 @CrossOrigin(origins = "*")
 public class DashboardController {
 
-    private static final List<TransactionDTO> MOCK_TRANSACTIONS = List.of(
-            TransactionDTO.builder()
-                    .id(1L)
-                    .date(LocalDate.of(2026, 5, 2))
-                    .narration("UPI-SWIGGY-BANGALORE")
-                    .amount(new BigDecimal("450.00"))
-                    .type(TransactionType.DEBIT)
-                    .category("Food")
-                    .build(),
-            TransactionDTO.builder()
-                    .id(2L)
-                    .date(LocalDate.of(2026, 5, 5))
-                    .narration("NACH-HDFC-HOME-LOAN-EMI")
-                    .amount(new BigDecimal("18500.00"))
-                    .type(TransactionType.DEBIT)
-                    .category("EMI")
-                    .build(),
-            TransactionDTO.builder()
-                    .id(3L)
-                    .date(LocalDate.of(2026, 5, 1))
-                    .narration("NEFT-SALARY-ACME-TECH-PVT-LTD")
-                    .amount(new BigDecimal("85000.00"))
-                    .type(TransactionType.CREDIT)
-                    .category("Salary")
-                    .build());
+    private final DashboardService dashboardService;
 
-    private static final DashboardSummaryDTO MOCK_SUMMARY =
-            new DashboardSummaryDTO(50000, 12000, 85);
+    public DashboardController(DashboardService dashboardService) {
+        this.dashboardService = dashboardService;
+    }
 
     @GetMapping("/transactions")
     public List<TransactionDTO> getTransactions() {
-        return MOCK_TRANSACTIONS;
+        return dashboardService.getAllTransactions();
     }
 
     @GetMapping("/dashboard/summary")
     public DashboardSummaryDTO getSummary() {
-        return MOCK_SUMMARY;
+        return dashboardService.getSummary();
     }
 }
