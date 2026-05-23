@@ -56,6 +56,9 @@ public class Transaction {
     @Column(length = 64)
     private String category;
 
+    @Column(name = "transaction_hash", nullable = false, unique = true, length = 64)
+    private String transactionHash;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
