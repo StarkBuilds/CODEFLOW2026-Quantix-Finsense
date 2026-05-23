@@ -7,7 +7,10 @@ import com.quantix.finsense.parser.ParsedTransaction;
 import com.quantix.finsense.repository.TransactionRepository;
 import com.quantix.finsense.repository.UserRepository;
 import java.io.IOException;
+import java.java.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -55,7 +58,22 @@ public class StatementUploadService {
                         .displayName("Demo User")
                         .build()));
 
-        List<Transaction> transactions = parsed.stream()
+      Set<String> hashes =
+                parsed.stream().map(ParsedTransaction::transactionHash).collect(Collectors.toSet());
+        Set<String> existingHashes = transactionRepository.findExistingHashes(hashes);
+        List<ParsedTransaction> newTransactions = new ArrayList<>();
+        for (ParsedTransaction item : parsed) {
+            if (!existingHashes.contains(item.transactionHash())) {
+                newTransactions.add(item);
+            }
+        }
+        if (newTransactions.isEmpty()) {
+            return new UploadResponse(
+                    "success",
+                    "Statement uploaded. All %d transactions were already present (duplicates skipped)."
+                            .formatted(parsed.size()));
+        }
+        List<Transaction> transactions = newTransactions.stream()
                 .map(p -> Transaction.builder()
                         .date(p.date())
                         .narration(p.narration())
@@ -68,9 +86,12 @@ public class StatementUploadService {
         List<Transaction> categorized = analysisService.classifyTransactions(transactions).join();
         transactionRepository.saveAll(categorized);
 
+        int skipped = parsed.size() - newTransactions.size();
+        String suffix = skipped > 0 ? "Skipped %d duplicates.".formatted(skipped) : "";
+
         return new UploadResponse(
                 "success",
-                "Statement uploaded and queued for ML processing. Saved %d categorized transactions."
-                        .formatted(categorized.size()));
+                "Statement uploaded and processed. Saved %d categorized transactions.%s"
+                        .formatted(categorized.size(), suffix));
     }
 }

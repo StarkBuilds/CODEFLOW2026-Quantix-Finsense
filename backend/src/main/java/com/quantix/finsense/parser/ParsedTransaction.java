@@ -5,4 +5,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 public record ParsedTransaction(
-        LocalDate date, String narration, BigDecimal amount, TransactionType type) {}
+       LocalDate date,
+        String narration,
+        BigDecimal amount,
+        TransactionType type,
+        String transactionHash) {}

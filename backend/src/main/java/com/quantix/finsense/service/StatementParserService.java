@@ -6,6 +6,7 @@ import com.opencsv.CSVParserBuilder;
 import com.opencsv.exceptions.CsvException;
 import com.quantix.finsense.model.TransactionType;
 import com.quantix.finsense.parser.ParsedTransaction;
+import com.quantix.finsense.util.TransactionHashUtil;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.math.BigDecimal;
@@ -133,7 +134,13 @@ public class StatementParserService {
         if (amount == null || amount.signum() <= 0 || type == null) {
             return null;
         }
-        return new ParsedTransaction(date, narration, amount, type);
+        return buildParsed(date, narration, amount, type);
+    }
+
+    private ParsedTransaction buildParsed(
+            LocalDate date, String narration, BigDecimal amount, TransactionType type) {
+        String hash = TransactionHashUtil.compute(date, amount, narration);
+        return new ParsedTransaction(date, narration, amount, type, hash);
     }
 
     private Map<String, Integer> defaultCsvColumns() {
@@ -190,7 +197,7 @@ public class StatementParserService {
                     continue;
                 }
                 TransactionType type = resolveTypeFromCrDr(matcher.group("crdr"));
-                transactions.add(new ParsedTransaction(date, narration, amount, type));
+                transactions.add(buildParsed(date, narration, amount, type));
             }
             return transactions;
         }
