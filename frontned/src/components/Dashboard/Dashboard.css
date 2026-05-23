@@ -1,0 +1,12 @@
+.dashboard {
+  min-height: 100vh;
+  background: #f8fafc;
+  padding: 30px;
+}
+
+.card {
+  background: white;
+  padding: 20px;
+  margin-bottom: 20px;
+  border-radius: 12px;
+}
