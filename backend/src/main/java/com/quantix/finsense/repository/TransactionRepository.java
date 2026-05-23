@@ -1,6 +1,8 @@
 package com.quantix.finsense.repository;
 
 import com.quantix.finsense.entity.Transaction;
+import com.quantix.finsense.model.TransactionType;
+import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -10,7 +12,12 @@ import org.springframework.data.repository.query.Param;
 
 public interface TransactionRepository extends JpaRepository<Transaction, Long> {
 
+    List<Transaction> findAllByOrderByDateDesc();
+
     List<Transaction> findByUser_IdOrderByDateDesc(Long userId);
+
+    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.type = :type")
+    BigDecimal sumAmountByType(@Param("type") TransactionType type);
 
     boolean existsByTransactionHash(String transactionHash);
 
