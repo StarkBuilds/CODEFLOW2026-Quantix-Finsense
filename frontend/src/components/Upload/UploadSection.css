@@ -1,0 +1,17 @@
+.upload-container {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #f0fdf4;
+}
+
+.drop-zone {
+  width: 500px;
+  padding: 40px;
+  background: white;
+  border: 2px dashed teal;
+  border-radius: 20px;
+  text-align: center;
+  cursor: pointer;
+}
