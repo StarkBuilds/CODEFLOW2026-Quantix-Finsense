@@ -1,7 +1,6 @@
 /* ─── Page ───────────────────────────────────────────────────────────────── */
 .processing-screen {
   min-height: 100vh;
-  background: var(--bg-green);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -9,29 +8,32 @@
   animation: fadeIn 0.3s ease;
 }
 
-/* ─── Card ───────────────────────────────────────────────────────────────── */
+/* ─── Glass card ─────────────────────────────────────────────────────────── */
 .processing-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid rgba(255, 255, 255, 0.10);
   border-radius: var(--radius-2xl);
-  padding: 48px 44px;
+  padding: 52px 48px;
   min-width: 380px;
   max-width: 460px;
   width: 100%;
   text-align: center;
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-lg), 0 0 60px rgba(0, 212, 170, 0.08);
   animation: slideDown 0.4s ease;
 }
 
 /* ─── Spinner ────────────────────────────────────────────────────────────── */
 .processing-spinner {
-  width: 56px;
-  height: 56px;
-  border: 3px solid var(--primary-light);
+  width: 60px;
+  height: 60px;
+  border: 3px solid rgba(0, 212, 170, 0.15);
   border-top-color: var(--primary);
   border-radius: 50%;
   animation: spin 0.9s linear infinite;
-  margin: 0 auto 24px;
+  margin: 0 auto 28px;
+  box-shadow: 0 0 20px rgba(0, 212, 170, 0.20);
 }
 
 /* ─── Title ──────────────────────────────────────────────────────────────── */
@@ -58,11 +60,16 @@
   font-size: 14px;
   color: var(--text-sub);
   animation: fadeUp 0.3s ease;
+  padding: 6px 10px;
+  border-radius: var(--radius-md);
+  transition: background 0.2s;
 }
 
 .processing-log__item--active {
   color: var(--text-primary);
   font-weight: 500;
+  background: rgba(0, 212, 170, 0.08);
+  border: 1px solid rgba(0, 212, 170, 0.15);
 }
 
 .processing-log__icon {

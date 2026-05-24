@@ -27,7 +27,8 @@ def build_narration(mode: str, name: str) -> str:
 
 def infer_category(mode: str, name: str, drcr: str) -> str:
     text = f"{mode} {name}".upper()
-    drcr = (drcr or "").strip().lower()
+
+    drcr = (drcr or "").strip().lower() 
 
     if "SBINT" in text or "INTEREST" in text:
         return "Income"
@@ -53,12 +54,14 @@ def infer_category(mode: str, name: str, drcr: str) -> str:
         return "Banking"
     if "PHONEPE" in text:
         return "Utilities"
-    if "STATEBAN" in text or "UPI" in text and drcr.startswith("db"):
+  
+    if ("STATEBAN" in text or "UPI" in text) and drcr.startswith("db"):
         return "Transfer"
+        
     if drcr.startswith("cr"):
         return "Income"
+        
     return "Shopping"
-
 
 def load_from_bank_csv() -> tuple[list[str], list[str]]:
     narrations: list[str] = []

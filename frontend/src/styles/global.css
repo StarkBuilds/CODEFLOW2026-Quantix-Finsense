@@ -1,33 +1,37 @@
-/* ─── CSS Variables ──────────────────────────────────────────────────────── */
+/* ─── CSS Variables — Dark Glass Theme ──────────────────────────────────── */
 :root {
-  --primary:        #0f766e;
-  --primary-light:  #ccfbf1;
-  --primary-hover:  #0d6b63;
-  --primary-ring:   #5eead4;
+  --primary:        #00d4aa;
+  --primary-light:  rgba(0, 212, 170, 0.15);
+  --primary-hover:  #00bfa0;
+  --primary-ring:   rgba(0, 212, 170, 0.35);
 
-  --bg-page:        #f8fafc;
-  --bg-green:       #f0fdf4;
-  --surface:        #ffffff;
+  --bg-page:        #070b14;
+  --bg-green:       #070b14;
+  --surface:        rgba(255, 255, 255, 0.06);
+  --surface-hover:  rgba(255, 255, 255, 0.10);
 
-  --border:         #e2e8f0;
-  --border-strong:  #cbd5e1;
+  --border:         rgba(255, 255, 255, 0.10);
+  --border-strong:  rgba(255, 255, 255, 0.18);
 
-  --text-primary:   #0f172a;
-  --text-muted:     #64748b;
-  --text-sub:       #94a3b8;
+  --text-primary:   #f1f5f9;
+  --text-muted:     #94a3b8;
+  --text-sub:       #4b5563;
 
-  --danger:         #dc2626;
-  --danger-bg:      #fee2e2;
-  --danger-border:  #fca5a5;
-  --danger-text:    #dc2626;
+  --danger:         #f87171;
+  --danger-bg:      rgba(248, 113, 113, 0.12);
+  --danger-border:  rgba(248, 113, 113, 0.30);
+  --danger-text:    #f87171;
 
-  --warning:        #d97706;
-  --warning-bg:     #fffbeb;
-  --warning-border: #fcd34d;
+  --warning:        #fbbf24;
+  --warning-bg:     rgba(251, 191, 36, 0.10);
+  --warning-border: rgba(251, 191, 36, 0.30);
 
-  --success:        #16a34a;
-  --success-bg:     #f0fdf4;
-  --success-border: #86efac;
+  --success:        #4ade80;
+  --success-bg:     rgba(74, 222, 128, 0.10);
+  --success-border: rgba(74, 222, 128, 0.25);
+
+  --glass-blur:     blur(20px) saturate(180%);
+  --glass-border:   1px solid rgba(255, 255, 255, 0.10);
 
   --radius-sm:  6px;
   --radius-md:  8px;
@@ -35,9 +39,10 @@
   --radius-xl:  14px;
   --radius-2xl: 20px;
 
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
-  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.10);
+  --shadow-sm:  0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md:  0 4px 24px rgba(0, 0, 0, 0.5);
+  --shadow-lg:  0 8px 40px rgba(0, 0, 0, 0.6);
+  --glow:       0 0 30px rgba(0, 212, 170, 0.15);
 
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
@@ -58,11 +63,19 @@ html {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* ─── Dark background with glowing blobs ─────────────────────────────────── */
 body {
   font-family: var(--font-sans);
-  background: var(--bg-page);
   color: var(--text-primary);
   line-height: 1.5;
+  min-height: 100vh;
+  background-color: #070b14;
+  background-image:
+    radial-gradient(ellipse 70% 60% at 10% 0%,   rgba(0, 212, 170, 0.14) 0%, transparent 55%),
+    radial-gradient(ellipse 55% 55% at 90% 10%,  rgba(99, 102, 241, 0.12) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 50% at 75% 85%,  rgba(139, 92, 246, 0.10) 0%, transparent 55%),
+    radial-gradient(ellipse 40% 40% at 20% 80%,  rgba(0, 212, 170, 0.07) 0%, transparent 50%);
+  background-attachment: fixed;
 }
 
 /* ─── Animations ─────────────────────────────────────────────────────────── */
@@ -71,14 +84,8 @@ body {
 }
 
 @keyframes fadeUp {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0);   }
 }
 
 @keyframes fadeIn {
@@ -87,21 +94,17 @@ body {
 }
 
 @keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(0, 212, 170, 0.2); }
+  50%       { box-shadow: 0 0 40px rgba(0, 212, 170, 0.4); }
 }
 
 /* ─── Utilities ──────────────────────────────────────────────────────────── */
-.mono {
-  font-family: var(--font-mono);
-}
-
+.mono    { font-family: var(--font-mono); }
 .truncate {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -109,17 +112,12 @@ body {
 }
 
 /* ─── Scrollbar ──────────────────────────────────────────────────────────── */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
+::-webkit-scrollbar       { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: var(--border-strong);
-  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--text-sub);
+  background: rgba(255, 255, 255, 0.22);
 }
