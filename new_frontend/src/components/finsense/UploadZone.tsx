@@ -1,8 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 import { Upload, FileText, Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
-
-const API = "http://localhost:8080/api";
+import { api } from "@/lib/api";
 
 // ── Added a robust TypeScript schema definition matching our new Java/Flask outputs ──
 export interface StatementAnalysisBundle {
@@ -41,14 +40,7 @@ export function UploadZone({ onSuccess }: { onSuccess: (data: StatementAnalysisB
       setFileName(file.name);
       setUploading(true);
       try {
-        const fd = new FormData();
-        fd.append("file", file);
-        
-        // This requests our updated Java Controller, which triggers Flask and Gemini pipelines automatically
-        const res = await fetch(`${API}/upload`, { method: "POST", body: fd });
-        if (!res.ok) throw new Error(`Upload failed (${res.status})`);
-        
-        const data: StatementAnalysisBundle = await res.json();
+        const data = await api.uploadStatement(file);
         
         // Sweet custom notification using the real summary metrics extracted live by your pipeline
         toast.success("Analysis complete", {

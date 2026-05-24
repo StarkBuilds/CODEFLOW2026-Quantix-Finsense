@@ -174,22 +174,31 @@ def analyze_and_summarize_statement():
                 total_expense += amount
 
         # 4. Prompt Gemini exclusively for natural language summary writing task
-        summary_prompt = f"""
-        Analyze these transaction summary metrics derived from a financial statement:
-        Total Transactions processed: {len(classified_transactions)}
-        Total Incoming Revenue: INR {total_income:.2f}
-        Total Outgoing Expenses: INR {total_expense:.2f}
-        Category Distribution Densities: {breakdown_aggregates}
+        executive_summary_text = ""
+        try:
+            summary_prompt = f"""
+            Analyze these transaction summary metrics derived from a financial statement:
+            Total Transactions processed: {len(classified_transactions)}
+            Total Incoming Revenue: INR {total_income:.2f}
+            Total Outgoing Expenses: INR {total_expense:.2f}
+            Category Distribution Densities: {breakdown_aggregates}
 
-        Compose a summary of 3-4 sentences detailing spending trends, savings rates, and standout classifications. 
-        Do not output markdown code tags, markdown blocks, or JSON syntax. Provide only plain conversational paragraphs.
-        """
+            Compose a summary of 3-4 sentences detailing spending trends, savings rates, and standout classifications. 
+            Do not output markdown code tags, markdown blocks, or JSON syntax. Provide only plain conversational paragraphs.
+            """
 
-        response = ai_client.models.generate_content(
-            model='gemini-2.5-flash',
-            contents=summary_prompt
-        )
-        executive_summary_text = response.text.strip()
+            response = ai_client.models.generate_content(
+                model='gemini-2.5-flash',
+                contents=summary_prompt
+            )
+            executive_summary_text = response.text.strip()
+        except Exception as gemini_err:
+            executive_summary_text = (
+                f"Processed {len(classified_transactions)} transactions "
+                f"(Income: INR {total_income:.2f}, Expenses: INR {total_expense:.2f}). "
+                f"Categories: {', '.join(f'{k}: {v}' for k, v in sorted(breakdown_aggregates.items()))}. "
+                f"(Gemini summary unavailable: {gemini_err})"
+            )
 
         # 5. Build full composite payload back to UI panels
         return jsonify({
