@@ -75,9 +75,18 @@ public class StatementParserService {
     }
 
     private List<ParsedTransaction> parseCsv(MultipartFile file) throws IOException {
+        // Auto-detect separator: read raw first line and check for tabs vs commas
+        byte[] rawBytes = file.getInputStream().readAllBytes();
+        String raw = new String(rawBytes, StandardCharsets.UTF_8);
+        int firstNewline = raw.indexOf('\n');
+        String firstLine = firstNewline > 0 ? raw.substring(0, firstNewline) : raw;
+        long tabCount = firstLine.chars().filter(c -> c == '\t').count();
+        long commaCount = firstLine.chars().filter(c -> c == ',').count();
+        char sep = tabCount > commaCount ? '\t' : ',';
+
         try (CSVReader reader = new CSVReaderBuilder(
-                        new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8))
-                .withCSVParser(new CSVParserBuilder().build())
+                        new java.io.StringReader(raw))
+                .withCSVParser(new CSVParserBuilder().withSeparator(sep).build())
                 .build()) {
             List<String[]> rows = reader.readAll();
             if (rows.isEmpty()) {
@@ -220,12 +229,13 @@ public class StatementParserService {
         for (int i = 0; i < header.length; i++) {
             String key = header[i].trim().toLowerCase(Locale.ROOT);
             switch (key) {
-                case "date", "transaction_date", "txn_date", "value date" -> columns.put("date", i);
+                case "date", "transaction_date", "txn_date", "value date", "timestamp" -> columns.put("date", i);
                 case "narration", "description", "particulars", "details", "remark" -> columns.put("narration", i);
-                case "amount", "transaction_amount" -> columns.put("amount", i);
+                case "transaction id", "transaction_id", "txn_id" -> columns.put("narration", i);
+                case "amount", "transaction_amount", "transaction amount" -> columns.put("amount", i);
                 case "debit", "withdrawal", "dr" -> columns.put("debit", i);
                 case "credit", "deposit", "cr" -> columns.put("credit", i);
-                case "type", "dr/cr", "transaction_type" -> columns.put("type", i);
+                case "type", "dr/cr", "transaction_type", "transaction type" -> columns.put("type", i);
                 case "drcr" -> columns.put("drcr", i);
                 case "mode" -> columns.put("mode", i);
                 case "name" -> columns.put("name", i);
@@ -311,10 +321,10 @@ public class StatementParserService {
             return TransactionType.DEBIT;
         }
         String value = raw.trim().toLowerCase(Locale.ROOT);
-        if (value.startsWith("cr") || value.contains("credit")) {
+        if (value.startsWith("cr") || value.contains("credit") || value.equals("deposit") || value.equals("dep")) {
             return TransactionType.CREDIT;
         }
-        if (value.startsWith("db") || value.startsWith("dr") || value.contains("debit")) {
+        if (value.startsWith("db") || value.startsWith("dr") || value.contains("debit") || value.contains("withdrawal") || value.startsWith("wd")) {
             return TransactionType.DEBIT;
         }
         return TransactionType.DEBIT;
@@ -322,6 +332,11 @@ public class StatementParserService {
 
     private LocalDate parseDate(String raw) {
         String value = raw.trim();
+        // Handle datetime strings like "2025-01-17 10:14:00"
+        int spaceIdx = value.indexOf(' ');
+        if (spaceIdx > 0) {
+            value = value.substring(0, spaceIdx);
+        }
         for (DateTimeFormatter formatter : DATE_FORMATTERS) {
             try {
                 return LocalDate.parse(value, formatter);
