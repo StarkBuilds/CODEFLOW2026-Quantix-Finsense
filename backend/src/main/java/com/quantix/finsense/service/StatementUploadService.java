@@ -5,13 +5,12 @@ import com.quantix.finsense.entity.Transaction;
 import com.quantix.finsense.entity.User;
 import com.quantix.finsense.parser.ParsedTransaction;
 import com.quantix.finsense.repository.TransactionRepository;
-import com.quantix.finsense.repository.UserRepository;
+import com.quantix.finsense.security.CurrentUserService;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -19,23 +18,22 @@ import org.springframework.web.multipart.MultipartFile;
 @Service
 public class StatementUploadService {
 
+    private static final String UNCATEGORIZED = "Uncategorized";
+
     private final StatementParserService parserService;
     private final TransactionAnalysisService analysisService;
     private final TransactionRepository transactionRepository;
-    private final UserRepository userRepository;
-    private final String defaultUserEmail;
+    private final CurrentUserService currentUserService;
 
     public StatementUploadService(
             StatementParserService parserService,
             TransactionAnalysisService analysisService,
             TransactionRepository transactionRepository,
-            UserRepository userRepository,
-            @Value("${finsense.default-user.email:demo@finsense.local}") String defaultUserEmail) {
+            CurrentUserService currentUserService) {
         this.parserService = parserService;
         this.analysisService = analysisService;
         this.transactionRepository = transactionRepository;
-        this.userRepository = userRepository;
-        this.defaultUserEmail = defaultUserEmail;
+        this.currentUserService = currentUserService;
     }
 
     @Transactional
@@ -47,38 +45,43 @@ public class StatementUploadService {
             throw new IllegalStateException("Failed to read uploaded statement", ex);
         }
 
+        int parsedCount = parsed.size();
         if (parsed.isEmpty()) {
-            return new UploadResponse("success", "Statement uploaded but no transactions were found");
+            return new UploadResponse(
+                    "success", "Statement uploaded but no transactions were found", 0, 0, 0, 0);
         }
 
-        User user = userRepository
-                .findByEmail(defaultUserEmail)
-                .orElseGet(() -> userRepository.save(User.builder()
-                        .email(defaultUserEmail)
-                        .displayName("Demo User")
-                        .build()));
+        User user = currentUserService.requireCurrentUser();
 
-      Set<String> hashes =
+        Set<String> hashes =
                 parsed.stream().map(ParsedTransaction::transactionHash).collect(Collectors.toSet());
         Set<String> existingHashes = transactionRepository.findExistingHashes(hashes);
+
         List<ParsedTransaction> newTransactions = new ArrayList<>();
         for (ParsedTransaction item : parsed) {
             if (!existingHashes.contains(item.transactionHash())) {
                 newTransactions.add(item);
             }
         }
+
+        int duplicateCount = parsedCount - newTransactions.size();
         if (newTransactions.isEmpty()) {
             return new UploadResponse(
                     "success",
-                    "Statement uploaded. All %d transactions were already present (duplicates skipped)."
-                            .formatted(parsed.size()));
+                    "All transactions already exist (duplicates skipped).",
+                    parsedCount,
+                    0,
+                    duplicateCount,
+                    0);
         }
+
         List<Transaction> transactions = newTransactions.stream()
                 .map(p -> Transaction.builder()
                         .date(p.date())
                         .narration(p.narration())
                         .amount(p.amount())
                         .type(p.type())
+                        .transactionHash(p.transactionHash())
                         .user(user)
                         .build())
                 .toList();
@@ -86,12 +89,16 @@ public class StatementUploadService {
         List<Transaction> categorized = analysisService.classifyTransactions(transactions).join();
         transactionRepository.saveAll(categorized);
 
-        int skipped = parsed.size() - newTransactions.size();
-        String suffix = skipped > 0 ? "Skipped %d duplicates.".formatted(skipped) : "";
+        int uncategorizedCount = (int) categorized.stream()
+                .filter(t -> UNCATEGORIZED.equalsIgnoreCase(t.getCategory()))
+                .count();
 
         return new UploadResponse(
                 "success",
-                "Statement uploaded and processed. Saved %d categorized transactions.%s"
-                        .formatted(categorized.size(), suffix));
+                "Statement processed successfully.",
+                parsedCount,
+                categorized.size(),
+                duplicateCount,
+                uncategorizedCount);
     }
 }

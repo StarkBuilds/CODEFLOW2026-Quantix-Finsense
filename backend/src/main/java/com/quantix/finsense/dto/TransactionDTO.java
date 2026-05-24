@@ -23,6 +23,7 @@ public class TransactionDTO {
     private BigDecimal amount;
     private TransactionType type;
     private String category;
+    private String transactionHash;
 
     public static TransactionDTO fromEntity(Transaction transaction) {
         return TransactionDTO.builder()
@@ -32,6 +33,7 @@ public class TransactionDTO {
                 .amount(transaction.getAmount())
                 .type(transaction.getType())
                 .category(transaction.getCategory())
+                .transactionHash(transaction.getTransactionHash())
                 .build();
     }
 }

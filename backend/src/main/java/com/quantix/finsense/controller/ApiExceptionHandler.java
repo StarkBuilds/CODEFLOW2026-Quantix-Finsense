@@ -10,6 +10,6 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<UploadResponse> handleBadRequest(IllegalArgumentException ex) {
-        return ResponseEntity.badRequest().body(new UploadResponse("error", ex.getMessage()));
+        return ResponseEntity.badRequest().body(new UploadResponse("error", ex.getMessage(), 0, 0, 0, 0));
     }
 }

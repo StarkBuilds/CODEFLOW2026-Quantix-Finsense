@@ -22,11 +22,11 @@ public class DashboardController {
 
     @GetMapping("/transactions")
     public List<TransactionDTO> getTransactions() {
-        return dashboardService.getAllTransactions();
+        return dashboardService.getTransactionsForCurrentUser();
     }
 
     @GetMapping("/dashboard/summary")
     public DashboardSummaryDTO getSummary() {
-        return dashboardService.getSummary();
+        return dashboardService.getSummaryForCurrentUser();
     }
 }
