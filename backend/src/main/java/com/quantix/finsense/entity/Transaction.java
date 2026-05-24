@@ -13,6 +13,7 @@ import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import lombok.AllArgsConstructor;
@@ -28,6 +29,9 @@ import lombok.Setter;
             @Index(name = "idx_transactions_user_id", columnList = "user_id"),
             @Index(name = "idx_transactions_date", columnList = "transaction_date"),
             @Index(name = "idx_transactions_category", columnList = "category")
+        },
+        uniqueConstraints = {
+            @UniqueConstraint(name = "uq_user_transaction", columnNames = {"user_id", "transaction_hash"})
         })
 @Getter
 @Setter
@@ -56,7 +60,7 @@ public class Transaction {
     @Column(length = 64)
     private String category;
 
-    @Column(name = "transaction_hash", nullable = false, unique = true, length = 64)
+    @Column(name = "transaction_hash", nullable = false, length = 64)
     private String transactionHash;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

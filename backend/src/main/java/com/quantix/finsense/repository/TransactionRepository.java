@@ -24,6 +24,9 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     @Query("SELECT t.transactionHash FROM Transaction t WHERE t.transactionHash IN :hashes")
     Set<String> findExistingHashes(@Param("hashes") Collection<String> hashes);
 
+    @Query("SELECT t.transactionHash FROM Transaction t WHERE t.user.id = :userId AND t.transactionHash IN :hashes")
+    Set<String> findExistingHashesForUser(@Param("userId") Long userId, @Param("hashes") Collection<String> hashes);
+
     @Query(
             "SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.user.id = :userId AND t.type = :type")
     BigDecimal sumAmountByUserAndType(@Param("userId") Long userId, @Param("type") TransactionType type);

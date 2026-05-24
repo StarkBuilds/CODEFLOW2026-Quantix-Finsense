@@ -42,6 +42,14 @@ public class StatementUploadService {
 
     @Transactional
     public UploadResponse process(MultipartFile file, String password) {
+        User user = currentUserService.requireCurrentUser();
+        log.info("process(user from SECURITY): user={} id={}", user.getEmail(), user.getId());
+        return process(file, password, user);
+    }
+
+    @Transactional
+    public UploadResponse process(MultipartFile file, String password, User user) {
+        log.info("process(user from CALLER): user={} id={}", user.getEmail(), user.getId());
         List<ParsedTransaction> parsed;
         try {
             parsed = parserService.parse(file, password);
@@ -55,10 +63,8 @@ public class StatementUploadService {
                     "success", "Statement uploaded but no transactions were found", 0, 0, 0, 0);
         }
 
-        User user = currentUserService.requireCurrentUser();
-        log.info("process: user={} id={}", user.getEmail(), user.getId());
-
-        Set<String> existingHashes = transactionRepository.findExistingHashes(
+        Set<String> existingHashes = transactionRepository.findExistingHashesForUser(
+                user.getId(),
                 parsed.stream().map(ParsedTransaction::transactionHash).collect(Collectors.toSet()));
         log.info("process: existingHashes={}", existingHashes.size());
 

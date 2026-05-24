@@ -29,4 +29,16 @@ public class DashboardController {
     public DashboardSummaryDTO getSummary() {
         return dashboardService.getSummaryForCurrentUser();
     }
+
+    @GetMapping("/debug/whoami")
+    public java.util.Map<String, Object> whoami() {
+        com.quantix.finsense.security.CurrentUserService svc = new com.quantix.finsense.security.CurrentUserService();
+        try {
+            com.quantix.finsense.entity.User user = svc.requireCurrentUser();
+            return java.util.Map.of("id", user.getId(), "email", user.getEmail());
+        } catch (Exception e) {
+            return java.util.Map.of("error", e.getMessage());
+        }
+    }
 }
+
