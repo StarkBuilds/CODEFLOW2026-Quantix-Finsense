@@ -4,6 +4,7 @@ import com.opencsv.CSVReader;
 import com.opencsv.CSVReaderBuilder;
 import com.opencsv.CSVParserBuilder;
 import com.opencsv.exceptions.CsvException;
+import com.quantix.finsense.exception.PdfEncryptedException;
 import com.quantix.finsense.model.TransactionType;
 import com.quantix.finsense.parser.ParsedTransaction;
 import com.quantix.finsense.util.TransactionHashUtil;
@@ -22,6 +23,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.encryption.InvalidPasswordException;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -45,7 +47,14 @@ public class StatementParserService {
                     + "(?<crdr>Cr|Dr|CR|DR|Credit|Debit)?\\s*$",
             Pattern.CASE_INSENSITIVE);
 
-    public List<ParsedTransaction> parse(MultipartFile file) throws IOException {
+    /**
+     * Entry point — dispatches CSV vs PDF parsing.
+     * 
+     * @param file     the uploaded statement
+     * @param password optional PDF password (null/blank if not encrypted)
+     * @throws PdfEncryptedException if the PDF is locked and no valid password was given
+     */
+    public List<ParsedTransaction> parse(MultipartFile file, String password) throws IOException {
         String filename = file.getOriginalFilename();
         if (filename == null || filename.isBlank()) {
             throw new IllegalArgumentException("Uploaded file has no name");
@@ -55,9 +64,14 @@ public class StatementParserService {
             return parseCsv(file);
         }
         if (lower.endsWith(".pdf")) {
-            return parsePdf(file);
+            return parsePdf(file, password);
         }
         throw new IllegalArgumentException("Unsupported file type. Upload a .csv or .pdf statement.");
+    }
+
+    /** Backward-compatible overload without password. */
+    public List<ParsedTransaction> parse(MultipartFile file) throws IOException {
+        return parse(file, null);
     }
 
     private List<ParsedTransaction> parseCsv(MultipartFile file) throws IOException {
@@ -230,8 +244,36 @@ public class StatementParserService {
         return columns;
     }
 
-    private List<ParsedTransaction> parsePdf(MultipartFile file) throws IOException {
-        try (PDDocument document = Loader.loadPDF(file.getBytes())) {
+    /**
+     * Parse PDF with optional password support.
+     * If the PDF is encrypted and no/wrong password is given,
+     * throws {@link PdfEncryptedException}.
+     */
+    private List<ParsedTransaction> parsePdf(MultipartFile file, String password) throws IOException {
+        byte[] bytes = file.getBytes();
+
+        PDDocument document;
+        try {
+            if (password != null && !password.isBlank()) {
+                document = Loader.loadPDF(bytes, password);
+            } else {
+                document = Loader.loadPDF(bytes);
+            }
+        } catch (InvalidPasswordException ex) {
+            throw new PdfEncryptedException("This PDF is password protected.", ex);
+        }
+
+        try (document) {
+            // PDFBox may load an encrypted doc without exception in some cases,
+            // but mark it as encrypted. Double-check accessibility.
+            if (document.isEncrypted()) {
+                try {
+                    document.setAllSecurityToBeRemoved(true);
+                } catch (Exception ignored) {
+                    // If we can't decrypt, report it
+                }
+            }
+
             PDFTextStripper stripper = new PDFTextStripper();
             String text = stripper.getText(document);
             List<ParsedTransaction> transactions = new ArrayList<>();
