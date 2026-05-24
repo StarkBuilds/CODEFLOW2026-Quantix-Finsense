@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,18 +17,18 @@ function ProfileSettings() {
 
   useEffect(() => {
     if (!user) return;
-    supabase.from("profiles").select("display_name").eq("id", user.id).single()
-      .then(({ data }) => setName(data?.display_name ?? ""));
+    // Mock user load since custom backend API doesn't specify profile endpoint
+    setName(user.email.split("@")[0] || "");
   }, [user]);
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
     setLoading(true);
-    const { error } = await supabase.from("profiles").update({ display_name: name }).eq("id", user.id);
-    setLoading(false);
-    if (error) return toast.error(error.message);
-    toast.success("Profile updated");
+    setTimeout(() => {
+      setLoading(false);
+      toast.info("Profile update not supported on this custom backend yet.");
+    }, 1000);
   };
 
   return (

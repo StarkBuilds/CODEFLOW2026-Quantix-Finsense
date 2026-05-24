@@ -1,50 +1,59 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import type { Session, User } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
 
 type Role = "admin" | "user";
+
+type User = {
+  id: string;
+  email: string;
+};
+
 type AuthCtx = {
-  session: Session | null;
+  session: string | null;
   user: User | null;
   roles: Role[];
   loading: boolean;
   isAdmin: boolean;
   signOut: () => Promise<void>;
+  signIn: (token: string, user: User, roles?: Role[]) => void;
 };
 
 const Ctx = createContext<AuthCtx | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
+  const [session, setSession] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
-      setSession(s);
-      if (s?.user) {
-        // defer to avoid deadlock
-        setTimeout(() => loadRoles(s.user.id), 0);
-      } else {
-        setRoles([]);
+    const token = localStorage.getItem("finsense_token");
+    const userStr = localStorage.getItem("finsense_user");
+    if (token && userStr) {
+      setSession(token);
+      try {
+        const u = JSON.parse(userStr);
+        setUser(u);
+        setRoles(u.roles || []);
+      } catch (e) {
+        setUser(null);
       }
-    });
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      if (data.session?.user) loadRoles(data.session.user.id);
-      setLoading(false);
-    });
-    return () => sub.subscription.unsubscribe();
+    }
+    setLoading(false);
   }, []);
 
-  const loadRoles = async (uid: string) => {
-    const { data } = await supabase.from("user_roles").select("role").eq("user_id", uid);
-    setRoles((data?.map((r) => r.role as Role)) ?? []);
+  const signIn = (token: string, u: User, r: Role[] = []) => {
+    localStorage.setItem("finsense_token", token);
+    localStorage.setItem("finsense_user", JSON.stringify({ ...u, roles: r }));
+    setSession(token);
+    setUser(u);
+    setRoles(r);
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    localStorage.removeItem("finsense_token");
+    localStorage.removeItem("finsense_user");
     setSession(null);
+    setUser(null);
     setRoles([]);
   };
 
@@ -52,11 +61,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <Ctx.Provider
       value={{
         session,
-        user: session?.user ?? null,
+        user,
         roles,
         loading,
         isAdmin: roles.includes("admin"),
         signOut,
+        signIn,
       }}
     >
       {children}
