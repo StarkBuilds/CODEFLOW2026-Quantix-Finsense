@@ -107,4 +107,49 @@ public class StatementUploadService {
     public UploadResponse process(MultipartFile file) {
         return process(file, null);
     }
+
+    public Object getStatementSummaryFromFlask(MultipartFile file, String password) {
+        // 1. Re-use your exact untouched parsing routine to get the transaction rows
+        List<ParsedTransaction> parsed;
+        try {
+            parsed = parserService.parse(file, password);
+        } catch (IOException ex) {
+            throw new IllegalStateException("Failed to read statement structures during summary generation", ex);
+        }
+
+        if (parsed.isEmpty()) {
+            return java.util.Map.of("error", "No transactions found to summarize.");
+        }
+
+        // 2. Format the payload into a raw structure matching what app.py expects
+        List<java.util.Map<String, Object>> flaskPayload = new ArrayList<>();
+        for (ParsedTransaction pt : parsed) {
+            java.util.Map<String, Object> txMap = new java.util.HashMap<>();
+            txMap.put("date", pt.date() != null ? pt.date().toString() : "");
+            txMap.put("narration", pt.narration() != null ? pt.narration() : "");
+            txMap.put("amount", pt.amount() != null ? pt.amount().doubleValue() : 0.0);
+            txMap.put("type", pt.type() != null ? pt.type().name() : "DEBIT");
+            flaskPayload.add(txMap);
+        }
+
+        // 3. Dispatch the payload via Spring's standard RestTemplate client
+        try {
+            String flaskUrl = "http://localhost:5000/api/analyze";
+            org.springframework.web.client.RestTemplate restTemplate = new org.springframework.web.client.RestTemplate();
+            
+            org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+            headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
+            
+            org.springframework.http.HttpEntity<List<java.util.Map<String, Object>>> entity = 
+                new org.springframework.http.HttpEntity<>(flaskPayload, headers);
+            
+            // Collect the composite response (XGBoost results + Gemini summary)
+            return restTemplate.postForObject(flaskUrl, entity, Object.class);
+        } catch (Exception e) {
+            return java.util.Map.of(
+                "error", "Flask connection failed",
+                "message", e.getMessage()
+            );
+        }
+    }
 }

@@ -4,7 +4,26 @@ import { toast } from "sonner";
 
 const API = "http://localhost:8080/api";
 
-export function UploadZone({ onSuccess }: { onSuccess: () => void }) {
+// ── Added a robust TypeScript schema definition matching our new Java/Flask outputs ──
+export interface StatementAnalysisBundle {
+  summary: {
+    aiOverview: string;      // The summary written by Gemini
+    transactionCount: number;
+    totalIncome: number;
+    totalExpense: number;
+    breakdown: Record<string, number>;
+  };
+  transactions: Array<{
+    date: string;
+    narration: string;
+    amount: number;
+    type: 'DEBIT' | 'CREDIT';
+    category: string;        // Assigned locally by XGBoost
+  }>;
+}
+
+// Updated the prop callback type to pass this complete dataset out to the dashboard panel layout
+export function UploadZone({ onSuccess }: { onSuccess: (data: StatementAnalysisBundle) => void }) {
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
@@ -24,13 +43,20 @@ export function UploadZone({ onSuccess }: { onSuccess: () => void }) {
       try {
         const fd = new FormData();
         fd.append("file", file);
+        
+        // This requests our updated Java Controller, which triggers Flask and Gemini pipelines automatically
         const res = await fetch(`${API}/upload`, { method: "POST", body: fd });
         if (!res.ok) throw new Error(`Upload failed (${res.status})`);
-        const data = await res.json();
+        
+        const data: StatementAnalysisBundle = await res.json();
+        
+        // Sweet custom notification using the real summary metrics extracted live by your pipeline
         toast.success("Analysis complete", {
-          description: `Parsed ${data.parsedCount ?? 0} • Saved ${data.savedCount ?? 0} transactions`,
+          description: `Processed ${data.summary?.transactionCount ?? 0} transactions via local XGBoost model.`,
         });
-        onSuccess();
+        
+        // Passes the entire asset bundle back to your main panel context structure
+        onSuccess(data);
       } catch (e) {
         const msg = e instanceof Error ? e.message : "Upload failed";
         toast.error(msg);

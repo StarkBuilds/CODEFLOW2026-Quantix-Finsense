@@ -34,7 +34,9 @@ public class StatementController {
         }
         
         try {
-            return ResponseEntity.ok(uploadService.process(file, password));
+            uploadService.process(file, password);
+            Object aiSummaryDataBundle = uploadService.getStatementSummaryFromFlask(file, password);
+            return ResponseEntity.ok(aiSummaryDataBundle);
         } catch (PdfEncryptedException e) {
             return ResponseEntity.status(HttpStatus.LOCKED)
                     .body(Map.of("error", "LOCKED", "message", "This PDF is password protected."));
