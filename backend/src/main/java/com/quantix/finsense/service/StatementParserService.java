@@ -36,7 +36,10 @@ public class StatementParserService {
         DateTimeFormatter.ofPattern("dd-MM-yyyy"),
         DateTimeFormatter.ofPattern("yyyy-MM-dd"),
         DateTimeFormatter.ofPattern("d/M/yyyy"),
-        DateTimeFormatter.ofPattern("dd-MMM-yyyy", Locale.ENGLISH)
+        DateTimeFormatter.ofPattern("dd/MM/yy"),
+        DateTimeFormatter.ofPattern("dd-MM-yy"),
+        DateTimeFormatter.ofPattern("dd-MMM-yyyy", Locale.ENGLISH),
+        DateTimeFormatter.ofPattern("dd-MMM-yy", Locale.ENGLISH)
     };
 
     /** Generic bank line: date, narration, amount, optional Dr/Cr. */
@@ -47,13 +50,6 @@ public class StatementParserService {
                     + "(?<crdr>Cr|Dr|CR|DR|Credit|Debit)?\\s*$",
             Pattern.CASE_INSENSITIVE);
 
-    /**
-     * Entry point — dispatches CSV vs PDF parsing.
-     * 
-     * @param file     the uploaded statement
-     * @param password optional PDF password (null/blank if not encrypted)
-     * @throws PdfEncryptedException if the PDF is locked and no valid password was given
-     */
     public List<ParsedTransaction> parse(MultipartFile file, String password) throws IOException {
         String filename = file.getOriginalFilename();
         if (filename == null || filename.isBlank()) {
@@ -69,7 +65,6 @@ public class StatementParserService {
         throw new IllegalArgumentException("Unsupported file type. Upload a .csv or .pdf statement.");
     }
 
-    /** Backward-compatible overload without password. */
     public List<ParsedTransaction> parse(MultipartFile file) throws IOException {
         return parse(file, null);
     }
@@ -97,11 +92,17 @@ public class StatementParserService {
                 if (row.length == 0 || isBlankRow(row)) {
                     continue;
                 }
-                ParsedTransaction txn = columns.containsKey("drcr")
-                        ? parseBankCsvRow(row, columns)
-                        : parseCsvRow(row, columns);
-                if (txn != null) {
-                    transactions.add(txn);
+                
+                try {
+                    ParsedTransaction txn = columns.containsKey("drcr")
+                            ? parseBankCsvRow(row, columns)
+                            : parseCsvRow(row, columns);
+                    if (txn != null) {
+                        transactions.add(txn);
+                    }
+                } catch (Exception singleRowException) {
+                    // Shield pipeline: prevent alternative row discrepancies from crashing the dataset parser out
+                    System.err.println("Skipping malformed row " + i + " due to error: " + singleRowException.getMessage());
                 }
             }
             return transactions;
@@ -113,6 +114,7 @@ public class StatementParserService {
     private ParsedTransaction parseCsvRow(String[] row, Map<String, Integer> columns) {
         Integer dateIdx = columns.get("date");
         Integer narrationIdx = columns.get("narration");
+        
         if (dateIdx == null || narrationIdx == null || dateIdx >= row.length || narrationIdx >= row.length) {
             return null;
         }
@@ -132,6 +134,7 @@ public class StatementParserService {
 
         Integer debitIdx = columns.get("debit");
         Integer creditIdx = columns.get("credit");
+        
         if (debitIdx != null && debitIdx < row.length && !row[debitIdx].isBlank()) {
             amount = parseAmount(row[debitIdx]);
             type = TransactionType.DEBIT;
@@ -153,11 +156,11 @@ public class StatementParserService {
         return buildParsed(date, narration, amount, type);
     }
 
-    /** Parses real bank export: date, DrCr, amount, mode, name, … */
     private ParsedTransaction parseBankCsvRow(String[] row, Map<String, Integer> columns) {
         Integer dateIdx = columns.get("date");
         Integer amountIdx = columns.get("amount");
         Integer drcrIdx = columns.get("drcr");
+        
         if (dateIdx == null || amountIdx == null || drcrIdx == null) {
             return null;
         }
@@ -178,6 +181,15 @@ public class StatementParserService {
         String mode = cellAt(row, columns.get("mode"));
         String name = cellAt(row, columns.get("name"));
         String narration = buildNarration(mode, name);
+        
+        // If map headers dynamically detected a narration index, merge it or overwrite
+        if (columns.containsKey("narration") && columns.get("narration") < row.length) {
+            String rawNarration = row[columns.get("narration")].trim();
+            if (!rawNarration.isEmpty()) {
+                narration = rawNarration;
+            }
+        }
+
         TransactionType type = resolveTypeFromCrDr(row[drcrIdx]);
         return buildParsed(date, narration, amount, type);
     }
@@ -217,38 +229,45 @@ public class StatementParserService {
 
     private Map<String, Integer> mapCsvHeaders(String[] header) {
         Map<String, Integer> columns = new java.util.HashMap<>();
+        
         for (int i = 0; i < header.length; i++) {
-            String key = header[i].trim().toLowerCase(Locale.ROOT);
-            switch (key) {
-                case "date", "transaction_date", "txn_date", "value date" -> columns.put("date", i);
-                case "narration", "description", "particulars", "details", "remark" -> columns.put("narration", i);
-                case "amount", "transaction_amount" -> columns.put("amount", i);
-                case "debit", "withdrawal", "dr" -> columns.put("debit", i);
-                case "credit", "deposit", "cr" -> columns.put("credit", i);
-                case "type", "dr/cr", "transaction_type" -> columns.put("type", i);
-                case "drcr" -> columns.put("drcr", i);
-                case "mode" -> columns.put("mode", i);
-                case "name" -> columns.put("name", i);
-                default -> {}
+            if (header[i] == null) continue;
+            
+            String key = header[i].trim().toLowerCase(Locale.ROOT).replace("_", " ").replace("-", " ");
+            
+            // Dynamic Containment Mappings matching training behaviors
+            if (key.contains("date")) {
+                columns.put("date", i);
+            } else if (key.contains("narration") || key.contains("description") || key.contains("particulars") || key.contains("details") || key.contains("remark")) {
+                columns.put("narration", i);
+            } else if (key.contains("amount") || key.equals("amt") || key.contains("value")) {
+                columns.put("amount", i);
+            } else if (key.contains("debit") || key.contains("withdrawal") || key.equals("dr")) {
+                columns.put("debit", i);
+            } else if (key.contains("credit") || key.contains("deposit") || key.equals("cr")) {
+                columns.put("credit", i);
+            } else if (key.equals("type") || key.contains("transaction type")) {
+                columns.put("type", i);
+            } else if (key.equals("dr/cr") || key.equals("drcr")) {
+                columns.put("drcr", i);
+                columns.put("type", i);
+            } else if (key.contains("mode")) {
+                columns.put("mode", i);
+            } else if (key.contains("name")) {
+                columns.put("name", i);
             }
         }
-        if (!columns.containsKey("narration")) {
-            columns.put("narration", 1);
-        }
-        if (!columns.containsKey("date")) {
-            columns.put("date", 0);
-        }
+        
+        // Smart fallbacks to prevent 0 field identification crash vectors
+        if (!columns.containsKey("date")) columns.put("date", 0);
+        if (!columns.containsKey("narration")) columns.put("narration", 1);
         if (!columns.containsKey("amount") && !columns.containsKey("debit")) {
             columns.put("amount", 2);
         }
+        
         return columns;
     }
 
-    /**
-     * Parse PDF with optional password support.
-     * If the PDF is encrypted and no/wrong password is given,
-     * throws {@link PdfEncryptedException}.
-     */
     private List<ParsedTransaction> parsePdf(MultipartFile file, String password) throws IOException {
         byte[] bytes = file.getBytes();
 
@@ -264,13 +283,10 @@ public class StatementParserService {
         }
 
         try (document) {
-            // PDFBox may load an encrypted doc without exception in some cases,
-            // but mark it as encrypted. Double-check accessibility.
             if (document.isEncrypted()) {
                 try {
                     document.setAllSecurityToBeRemoved(true);
                 } catch (Exception ignored) {
-                    // If we can't decrypt, report it
                 }
             }
 
@@ -302,7 +318,6 @@ public class StatementParserService {
         if (typeIdx != null && typeIdx < row.length && !row[typeIdx].isBlank()) {
             return resolveTypeFromCrDr(row[typeIdx]);
         }
-        // Single amount column with no Dr/Cr hint — treat as debit unless explicitly negative.
         return TransactionType.DEBIT;
     }
 
@@ -326,7 +341,6 @@ public class StatementParserService {
             try {
                 return LocalDate.parse(value, formatter);
             } catch (DateTimeParseException ignored) {
-                // try next format
             }
         }
         return null;
