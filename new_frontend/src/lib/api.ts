@@ -1,13 +1,11 @@
-// Thin wrapper around the Spring Boot ML backend.
+// Thin wrapper around the Spring Boot backend.
 // All ML/transaction endpoints are proxied through this client so we can swap
-// the base URL or attach the Supabase JWT in one place.
-import { supabase } from "@/integrations/supabase/client";
+// the base URL or attach the JWT in one place.
 
 export const API_BASE = (import.meta.env.VITE_FINSENSE_API as string | undefined) ?? "http://localhost:8080/api";
 
-async function authHeaders(): Promise<HeadersInit> {
-  const { data } = await supabase.auth.getSession();
-  const token = data.session?.access_token;
+function authHeaders(): HeadersInit {
+  const token = localStorage.getItem("finsense_token");
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
@@ -18,29 +16,43 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const isFormData = init.body instanceof FormData;
   const headers = {
-    "Content-Type": "application/json",
-    ...(await authHeaders()),
+    ...(isFormData ? {} : { "Content-Type": "application/json" }),
+    ...authHeaders(),
     ...(init.headers ?? {}),
   };
+  
   const res = await fetch(`${API_BASE}${path}`, { ...init, headers });
-  if (!res.ok) throw new ApiError(res.status, `${res.status} ${res.statusText}`);
+  if (!res.ok) {
+    let msg = `${res.status} ${res.statusText}`;
+    try {
+      const errBody = await res.json();
+      if (errBody.message) msg = errBody.message;
+      else if (errBody.error) msg = errBody.error;
+    } catch (e) {
+      // Ignore
+    }
+    if (res.status === 401 || res.status === 423) {
+      throw new ApiError(res.status, msg);
+    }
+    throw new ApiError(res.status, msg);
+  }
   if (res.status === 204) return undefined as T;
   return (await res.json()) as T;
 }
 
 export const api = {
   // Statements & ingestion
-  uploadStatement: async (file: File) => {
+  uploadStatement: async (file: File, password?: string) => {
     const fd = new FormData();
     fd.append("file", file);
-    const res = await fetch(`${API_BASE}/upload`, {
+    if (password) fd.append("password", password);
+    
+    return request<any>("/upload", {
       method: "POST",
-      headers: await authHeaders(),
       body: fd,
     });
-    if (!res.ok) throw new ApiError(res.status, "Upload failed");
-    return res.json();
   },
   listStatements: () => request<Array<{ id: string; filename: string; uploadedAt: string; transactionCount: number }>>("/statements"),
 

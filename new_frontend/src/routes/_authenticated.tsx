@@ -1,11 +1,10 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
-import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/finsense/AppShell";
 
 export const Route = createFileRoute("/_authenticated")({
-  beforeLoad: async ({ location }) => {
-    const { data } = await supabase.auth.getSession();
-    if (!data.session) {
+  beforeLoad: ({ location }) => {
+    const token = localStorage.getItem("finsense_token");
+    if (!token) {
       throw redirect({ to: "/login", search: { redirect: location.href } as never });
     }
   },

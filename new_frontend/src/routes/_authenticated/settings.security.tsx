@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,11 +17,12 @@ function SecuritySettings() {
     e.preventDefault();
     if (pw.length < 8) return toast.error("At least 8 characters");
     setLoading(true);
-    const { error } = await supabase.auth.updateUser({ password: pw });
-    setLoading(false);
-    if (error) return toast.error(error.message);
-    setPw("");
-    toast.success("Password updated");
+    // Simulate updating password
+    setTimeout(() => {
+      setLoading(false);
+      setPw("");
+      toast.info("Password update not supported on this custom backend yet.");
+    }, 1000);
   };
 
   return (

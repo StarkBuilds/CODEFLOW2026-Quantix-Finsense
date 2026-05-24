@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth";
-import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -37,9 +36,8 @@ function ProfilePage() {
     }
     setPwLoading(true);
     try {
-      const { error } = await supabase.auth.updateUser({ password: newPw });
-      if (error) throw error;
-      toast.success("Password updated successfully");
+      // NOTE: Password update endpoint needs to be implemented on the Spring Boot backend
+      toast.info("Password update not supported on this custom backend yet.");
       setCurrentPw(""); setNewPw(""); setConfirmPw("");
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Password update failed");

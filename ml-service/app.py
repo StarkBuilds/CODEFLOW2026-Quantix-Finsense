@@ -105,6 +105,16 @@ def classify():
     return jsonify(categories)
 
 
+@app.post("/train")
+def train_model():
+    try:
+        import train
+        train.main()
+        load_artifacts()
+        return jsonify({"status": "success", "message": "Model retrained successfully"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == "__main__":
     load_artifacts()
     app.run(host="0.0.0.0", port=5000, debug=True)
