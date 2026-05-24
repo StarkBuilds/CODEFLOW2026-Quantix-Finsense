@@ -4,10 +4,23 @@
   background: var(--bg-green);
   display: flex;
   flex-direction: column;
-  align-items: center;
   justify-content: center;
-  padding: 40px 16px;
-  animation: fadeIn 0.4s ease;
+  align-items: center;
+  background: #f0fdf4;
+  padding: 1rem;
+}
+
+.upload-header {
+  width: 100%;
+  max-width: 500px;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.upload-error {
+  color: #dc2626;
+  margin-top: 1rem;
 }
 
 /* ─── Logo ───────────────────────────────────────────────────────────────── */
