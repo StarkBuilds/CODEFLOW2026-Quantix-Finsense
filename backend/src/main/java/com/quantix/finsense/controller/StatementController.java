@@ -24,7 +24,8 @@ public class StatementController {
     @PostMapping("/upload")
     public ResponseEntity<UploadResponse> upload(@RequestParam("file") MultipartFile file) {
         if (file.isEmpty()) {
-            return ResponseEntity.badRequest().body(new UploadResponse("error", "Uploaded file is empty"));
+            return ResponseEntity.badRequest()
+                    .body(new UploadResponse("error", "Uploaded file is empty", 0, 0, 0, 0));
         }
         return ResponseEntity.ok(uploadService.process(file));
     }

@@ -2,8 +2,10 @@ package com.quantix.finsense.service;
 
 import com.quantix.finsense.dto.DashboardSummaryDTO;
 import com.quantix.finsense.dto.TransactionDTO;
+import com.quantix.finsense.entity.User;
 import com.quantix.finsense.model.TransactionType;
 import com.quantix.finsense.repository.TransactionRepository;
+import com.quantix.finsense.security.CurrentUserService;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
@@ -14,22 +16,29 @@ import org.springframework.transaction.annotation.Transactional;
 public class DashboardService {
 
     private final TransactionRepository transactionRepository;
+    private final CurrentUserService currentUserService;
 
-    public DashboardService(TransactionRepository transactionRepository) {
+    public DashboardService(
+            TransactionRepository transactionRepository, CurrentUserService currentUserService) {
         this.transactionRepository = transactionRepository;
+        this.currentUserService = currentUserService;
     }
 
     @Transactional(readOnly = true)
-    public List<TransactionDTO> getAllTransactions() {
-        return transactionRepository.findAllByOrderByDateDesc().stream()
+    public List<TransactionDTO> getTransactionsForCurrentUser() {
+        User user = currentUserService.requireCurrentUser();
+        return transactionRepository.findByUser_IdOrderByDateDesc(user.getId()).stream()
                 .map(TransactionDTO::fromEntity)
                 .toList();
     }
 
     @Transactional(readOnly = true)
-    public DashboardSummaryDTO getSummary() {
-        BigDecimal income = transactionRepository.sumAmountByType(TransactionType.CREDIT);
-        BigDecimal expense = transactionRepository.sumAmountByType(TransactionType.DEBIT);
+    public DashboardSummaryDTO getSummaryForCurrentUser() {
+        User user = currentUserService.requireCurrentUser();
+        BigDecimal income =
+                transactionRepository.sumAmountByUserAndType(user.getId(), TransactionType.CREDIT);
+        BigDecimal expense =
+                transactionRepository.sumAmountByUserAndType(user.getId(), TransactionType.DEBIT);
 
         long totalIncome = toWholeRupees(income);
         long totalExpense = toWholeRupees(expense);
@@ -42,7 +51,6 @@ public class DashboardService {
         return amount.setScale(0, RoundingMode.HALF_UP).longValue();
     }
 
-    /** Higher score when income comfortably exceeds expenses. */
     private int calculateHealthScore(long totalIncome, long totalExpense) {
         if (totalIncome == 0 && totalExpense == 0) {
             return 50;

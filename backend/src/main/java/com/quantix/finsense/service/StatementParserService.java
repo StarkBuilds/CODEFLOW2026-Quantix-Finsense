@@ -83,7 +83,9 @@ public class StatementParserService {
                 if (row.length == 0 || isBlankRow(row)) {
                     continue;
                 }
-                ParsedTransaction txn = parseCsvRow(row, columns);
+                ParsedTransaction txn = columns.containsKey("drcr")
+                        ? parseBankCsvRow(row, columns)
+                        : parseCsvRow(row, columns);
                 if (txn != null) {
                     transactions.add(txn);
                 }
@@ -137,6 +139,54 @@ public class StatementParserService {
         return buildParsed(date, narration, amount, type);
     }
 
+    /** Parses real bank export: date, DrCr, amount, mode, name, … */
+    private ParsedTransaction parseBankCsvRow(String[] row, Map<String, Integer> columns) {
+        Integer dateIdx = columns.get("date");
+        Integer amountIdx = columns.get("amount");
+        Integer drcrIdx = columns.get("drcr");
+        if (dateIdx == null || amountIdx == null || drcrIdx == null) {
+            return null;
+        }
+        if (dateIdx >= row.length || amountIdx >= row.length || drcrIdx >= row.length) {
+            return null;
+        }
+
+        LocalDate date = parseDate(row[dateIdx].trim());
+        if (date == null) {
+            return null;
+        }
+
+        BigDecimal amount = parseAmount(row[amountIdx]);
+        if (amount == null || amount.signum() <= 0) {
+            return null;
+        }
+
+        String mode = cellAt(row, columns.get("mode"));
+        String name = cellAt(row, columns.get("name"));
+        String narration = buildNarration(mode, name);
+        TransactionType type = resolveTypeFromCrDr(row[drcrIdx]);
+        return buildParsed(date, narration, amount, type);
+    }
+
+    private String buildNarration(String mode, String name) {
+        String m = mode == null ? "" : mode.trim();
+        String n = name == null ? "" : name.trim();
+        if (!m.isEmpty() && !n.isEmpty()) {
+            return m + " " + n;
+        }
+        if (!n.isEmpty()) {
+            return n;
+        }
+        return m.isEmpty() ? "BANK TRANSACTION" : m;
+    }
+
+    private String cellAt(String[] row, Integer index) {
+        if (index == null || index >= row.length) {
+            return "";
+        }
+        return row[index] == null ? "" : row[index].trim();
+    }
+
     private ParsedTransaction buildParsed(
             LocalDate date, String narration, BigDecimal amount, TransactionType type) {
         String hash = TransactionHashUtil.compute(date, amount, narration);
@@ -162,6 +212,9 @@ public class StatementParserService {
                 case "debit", "withdrawal", "dr" -> columns.put("debit", i);
                 case "credit", "deposit", "cr" -> columns.put("credit", i);
                 case "type", "dr/cr", "transaction_type" -> columns.put("type", i);
+                case "drcr" -> columns.put("drcr", i);
+                case "mode" -> columns.put("mode", i);
+                case "name" -> columns.put("name", i);
                 default -> {}
             }
         }
@@ -218,6 +271,9 @@ public class StatementParserService {
         String value = raw.trim().toLowerCase(Locale.ROOT);
         if (value.startsWith("cr") || value.contains("credit")) {
             return TransactionType.CREDIT;
+        }
+        if (value.startsWith("db") || value.startsWith("dr") || value.contains("debit")) {
+            return TransactionType.DEBIT;
         }
         return TransactionType.DEBIT;
     }
