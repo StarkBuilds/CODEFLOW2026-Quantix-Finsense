@@ -4,10 +4,9 @@ import { toast } from "sonner";
 
 const API = "http://localhost:8080/api";
 
-// ── Added a robust TypeScript schema definition matching our new Java/Flask outputs ──
 export interface StatementAnalysisBundle {
   summary: {
-    aiOverview: string;      // The summary written by Gemini
+    aiOverview: string;
     transactionCount: number;
     totalIncome: number;
     totalExpense: number;
@@ -18,11 +17,10 @@ export interface StatementAnalysisBundle {
     narration: string;
     amount: number;
     type: 'DEBIT' | 'CREDIT';
-    category: string;        // Assigned locally by XGBoost
+    category: string;
   }>;
 }
 
-// Updated the prop callback type to pass this complete dataset out to the dashboard panel layout
 export function UploadZone({ onSuccess }: { onSuccess: (data: StatementAnalysisBundle) => void }) {
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -44,18 +42,26 @@ export function UploadZone({ onSuccess }: { onSuccess: (data: StatementAnalysisB
         const fd = new FormData();
         fd.append("file", file);
         
-        // This requests our updated Java Controller, which triggers Flask and Gemini pipelines automatically
-        const res = await fetch(`${API}/upload`, { method: "POST", body: fd });
+        // ── STEP 2 FIX: Pull token safely inside the client browser context lifecycle ──
+        const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+        
+        const res = await fetch(`${API}/upload`, { 
+          method: "POST", 
+          headers: {
+            // Appends the validation token to satisfy Spring Security
+            ...(token ? { "Authorization": `Bearer ${token}` } : {})
+          },
+          body: fd 
+        });
+        
         if (!res.ok) throw new Error(`Upload failed (${res.status})`);
         
         const data: StatementAnalysisBundle = await res.json();
         
-        // Sweet custom notification using the real summary metrics extracted live by your pipeline
         toast.success("Analysis complete", {
           description: `Processed ${data.summary?.transactionCount ?? 0} transactions via local XGBoost model.`,
         });
         
-        // Passes the entire asset bundle back to your main panel context structure
         onSuccess(data);
       } catch (e) {
         const msg = e instanceof Error ? e.message : "Upload failed";
