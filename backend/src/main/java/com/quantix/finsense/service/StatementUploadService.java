@@ -37,10 +37,10 @@ public class StatementUploadService {
     }
 
     @Transactional
-    public UploadResponse process(MultipartFile file) {
+    public UploadResponse process(MultipartFile file, String password) {
         List<ParsedTransaction> parsed;
         try {
-            parsed = parserService.parse(file);
+            parsed = parserService.parse(file, password);
         } catch (IOException ex) {
             throw new IllegalStateException("Failed to read uploaded statement", ex);
         }
@@ -100,5 +100,11 @@ public class StatementUploadService {
                 categorized.size(),
                 duplicateCount,
                 uncategorizedCount);
+    }
+
+    /** Backward-compatible overload without password. */
+    @Transactional
+    public UploadResponse process(MultipartFile file) {
+        return process(file, null);
     }
 }

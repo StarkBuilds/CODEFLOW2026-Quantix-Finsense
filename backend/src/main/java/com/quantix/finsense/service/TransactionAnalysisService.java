@@ -33,8 +33,10 @@ public class TransactionAnalysisService {
         this.classifyTimeout = classifyTimeout;
     }
 
+    record MlRequestDto(String narration, double amount, String type) {}
+
     /**
-     * Sends narrations to the Flask classifier and applies returned categories.
+     * Sends transactions to the Flask classifier and applies returned categories.
      * On ML failure, assigns {@value #FALLBACK_CATEGORY} so uploads still complete.
      */
     @Async
@@ -43,14 +45,15 @@ public class TransactionAnalysisService {
             return CompletableFuture.completedFuture(Collections.emptyList());
         }
 
-        List<String> narrations =
-                transactions.stream().map(Transaction::getNarration).toList();
+        List<MlRequestDto> payload = transactions.stream()
+                .map(t -> new MlRequestDto(t.getNarration(), t.getAmount().doubleValue(), t.getType().name()))
+                .toList();
 
         try {
             List<String> categories = mlWebClient
                     .post()
                     .uri("/classify")
-                    .bodyValue(narrations)
+                    .bodyValue(payload)
                     .retrieve()
                     .bodyToMono(STRING_LIST)
                     .block(classifyTimeout);
