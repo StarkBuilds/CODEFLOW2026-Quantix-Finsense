@@ -3,10 +3,9 @@ import { Upload, FileText, Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 
-// ── Added a robust TypeScript schema definition matching our new Java/Flask outputs ──
 export interface StatementAnalysisBundle {
   summary: {
-    aiOverview: string;      // The summary written by Gemini
+    aiOverview: string;
     transactionCount: number;
     totalIncome: number;
     totalExpense: number;
@@ -17,11 +16,10 @@ export interface StatementAnalysisBundle {
     narration: string;
     amount: number;
     type: 'DEBIT' | 'CREDIT';
-    category: string;        // Assigned locally by XGBoost
+    category: string;
   }>;
 }
 
-// Updated the prop callback type to pass this complete dataset out to the dashboard panel layout
 export function UploadZone({ onSuccess }: { onSuccess: (data: StatementAnalysisBundle) => void }) {
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -42,12 +40,10 @@ export function UploadZone({ onSuccess }: { onSuccess: (data: StatementAnalysisB
       try {
         const data = await api.uploadStatement(file);
         
-        // Sweet custom notification using the real summary metrics extracted live by your pipeline
         toast.success("Analysis complete", {
           description: `Processed ${data.summary?.transactionCount ?? 0} transactions via local XGBoost model.`,
         });
         
-        // Passes the entire asset bundle back to your main panel context structure
         onSuccess(data);
       } catch (e) {
         const msg = e instanceof Error ? e.message : "Upload failed";
